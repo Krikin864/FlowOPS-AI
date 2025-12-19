@@ -1,0 +1,89 @@
+You are working on a 3-week MVP called LinkOps AI.
+
+PROJECT CONTEXT
+- This is a frontend-first MVP built with Next.js, React, TypeScript, Tailwind, and shadcn/ui.
+- The current focus is UI/UX correctness and feature parity with the PRD.
+- Backend, database, and authentication are NOT implemented yet.
+- All data is currently mocked or stored in client-side state.
+- Do NOT introduce backend logic, Supabase code, or authentication unless explicitly requested.
+
+PRODUCT GOAL
+- Capture client opportunities from pasted text.
+- Use AI (mocked for now) to extract:
+  - summary
+  - required skills (MULTIPLE skills supported)
+  - urgency (high / medium / low)
+- Allow manual assignment of opportunities to team members.
+- Track opportunity status using a Kanban-style workflow.
+
+STRICT SCOPE RULES
+- Stay within the MVP scope defined in the PRD.
+- Do NOT add new features unless explicitly requested.
+- Do NOT refactor unrelated files.
+- Do NOT introduce new pages or routes unless asked.
+- Do NOT remove existing functionality unless instructed.
+
+UI / UX RULES
+- The dashboard and opportunities page must reflect all active filters visually.
+- Any filter applied must be:
+  - clearly visible on screen
+  - removable individually
+  - removable via a "Clear / View All" option
+- Users must never filter by data that is not visible on the card or table.
+- Skills must be displayed as individual tags, never as a single concatenated string.
+- Skill selection must support MULTIPLE skills.
+- Skill lists must be scrollable when long.
+- Layout must be compact and avoid wasted vertical space.
+- Consistent color palette and spacing across all screens.
+- Sidebar collapse state must persist across navigation.
+
+COMPONENT BEHAVIOR RULES
+- "Add Opportunity" button must work on both Dashboard and Opportunities page.
+- Reuse the same modal component for creating opportunities.
+- Editing an opportunity must persist changes in UI state.
+- AI processing must show a clear loading overlay or modal.
+- AI results must be editable before final creation.
+
+FILTERING RULES (CRITICAL)
+- Filters must never result in an empty UI with no recovery path.
+- Always provide a way to reset filters and view all data.
+- Status filter must exist on the Opportunities page.
+- Skill filters must match individual skills, not grouped strings.
+- Member filters must show the assigned member visually on cards.
+
+DATA MODEL (FRONTEND ONLY)
+- Opportunity:
+  - id
+  - clientName
+  - companyName (optional)
+  - originalText
+  - summary
+  - skills: string[]
+  - urgency
+  - status (New | Assigned | Done)
+  - assignedMemberId (optional)
+  - createdAt
+- TeamMember:
+  - id
+  - name
+  - skills: string[]
+  - activeCount
+  - completedCount
+
+AI RULES
+- AI logic is mocked or simulated.
+- No real API calls unless explicitly requested.
+- AI output must always return structured data:
+  - summary
+  - skills[]
+  - urgency
+
+CODE QUALITY
+- Prefer small, readable components.
+- Avoid over-engineering.
+- Favor clarity over cleverness.
+- Leave TODO comments when something is intentionally incomplete.
+
+COMMUNICATION STYLE
+- Before making large changes, explain intent briefly.
+- If requirements are unclear, ask for clarification instead of guessing.
