@@ -185,6 +185,16 @@ export async function getOpportunities(): Promise<Opportunity[]> {
       const client = opp.Clients || opp.client || null
       const assignedUser = opp.Profiles || opp.assigned_user || null
       
+      // Determinar el status inicial
+      let status = (opp.status?.toLowerCase() || 'new') as "new" | "assigned" | "done"
+      
+      // Lógica de limpieza: Si hay un miembro asignado pero el status es 'new', cambiar a 'assigned'
+      // Esto corrige inconsistencias en los datos de la DB
+      const hasAssignedUser = opp.assigned_user_id !== null && opp.assigned_user_id !== undefined
+      if (hasAssignedUser && status === 'new') {
+        status = 'assigned'
+      }
+      
       return {
         id: opp.id,
         clientName: client?.name || 'Unknown Client',
@@ -192,7 +202,7 @@ export async function getOpportunities(): Promise<Opportunity[]> {
         summary: opp.original_message || '',
         requiredSkill: skillNames.length > 0 ? (skillNames.length === 1 ? skillNames[0] : skillNames) : [],
         assignee: assignedUser?.full_name || '',
-        status: (opp.status?.toLowerCase() || 'new') as "new" | "assigned" | "done",
+        status: status,
         urgency: (opp.urgency?.toLowerCase() || 'medium') as "high" | "medium" | "low",
         aiSummary: opp.ai_summary || '',
         createdDate: new Date(opp.created_at).toLocaleDateString('en-US', {
@@ -206,6 +216,110 @@ export async function getOpportunities(): Promise<Opportunity[]> {
     return transformedOpportunities
   } catch (error) {
     console.error('Error in getOpportunities:', error)
+    throw error
+  }
+}
+
+/**
+ * Actualiza el estado de una oportunidad en la base de datos
+ * @param id - ID de la oportunidad
+ * @param newStatus - Nuevo estado: "new", "assigned", o "done"
+ * @returns La oportunidad actualizada o null si hay error
+ */
+export async function updateOpportunityStatus(
+  id: string,
+  newStatus: "new" | "assigned" | "done"
+): Promise<Opportunity | null> {
+  try {
+    const { data, error } = await supabase
+      .from('Opportunities')
+      .update({ status: newStatus })
+      .eq('id', id)
+      .select(`
+        id,
+        client_id,
+        assigned_user_id,
+        status,
+        original_message,
+        ai_summary,
+        urgency,
+        created_at,
+        Clients!client_id (
+          name,
+          company
+        ),
+        Profiles!assigned_user_id (
+          full_name
+        )
+      `)
+      .single()
+
+    if (error) {
+      console.error('Error updating opportunity status:', error)
+      throw error
+    }
+
+    if (!data) {
+      return null
+    }
+
+    // Obtener skills para esta oportunidad
+    const { data: opportunitiesWithSkillId } = await supabase
+      .from('Opportunities')
+      .select('id, required_skill_id')
+      .eq('id', id)
+
+    let skills: { id: string; name: string }[] = []
+    if (opportunitiesWithSkillId && opportunitiesWithSkillId[0]?.required_skill_id) {
+      const { data: skillData } = await supabase
+        .from('Skills')
+        .select('id, name')
+        .eq('id', opportunitiesWithSkillId[0].required_skill_id)
+
+      if (skillData && skillData.length > 0) {
+        skills = skillData
+      }
+    }
+
+    // Intentar también desde tabla de relación
+    if (skills.length === 0) {
+      const { data: opportunitySkills } = await supabase
+        .from('opportunity_skills')
+        .select(`
+          skill:skill_id (
+            id,
+            name
+          )
+        `)
+        .eq('opportunity_id', id)
+
+      if (opportunitySkills && opportunitySkills.length > 0) {
+        skills = opportunitySkills.map((os: any) => os.skill).filter(Boolean)
+      }
+    }
+
+    const skillNames = skills.map(s => s.name)
+    const client = (data as any).Clients || (data as any).client || null
+    const assignedUser = (data as any).Profiles || (data as any).assigned_user || null
+
+    return {
+      id: data.id,
+      clientName: client?.name || 'Unknown Client',
+      company: client?.company || 'Unknown Company',
+      summary: data.original_message || '',
+      requiredSkill: skillNames.length > 0 ? (skillNames.length === 1 ? skillNames[0] : skillNames) : [],
+      assignee: assignedUser?.full_name || '',
+      status: (data.status?.toLowerCase() || 'new') as "new" | "assigned" | "done",
+      urgency: (data.urgency?.toLowerCase() || 'medium') as "high" | "medium" | "low",
+      aiSummary: data.ai_summary || '',
+      createdDate: new Date(data.created_at).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      })
+    }
+  } catch (error) {
+    console.error('Error in updateOpportunityStatus:', error)
     throw error
   }
 }

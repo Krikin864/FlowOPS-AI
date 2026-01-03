@@ -15,15 +15,16 @@ interface Opportunity {
   urgency: "high" | "medium" | "low"
   aiSummary: string
   isProcessing?: boolean
-  createdDate: string // Added for date display
+  createdDate?: string
 }
 
 interface OpportunityCardProps {
   opportunity: Opportunity
   onClick?: () => void
+  isUpdating?: boolean
 }
 
-export default function OpportunityCard({ opportunity, onClick }: OpportunityCardProps) {
+export default function OpportunityCard({ opportunity, onClick, isUpdating = false }: OpportunityCardProps) {
   const urgencyColors = {
     high: "bg-red-500/10 text-red-600 border-red-200",
     medium: "bg-yellow-500/10 text-yellow-600 border-yellow-200",
@@ -41,7 +42,9 @@ export default function OpportunityCard({ opportunity, onClick }: OpportunityCar
   return (
     <Card
       onClick={onClick}
-      className={`p-3 bg-card border border-border hover:border-primary/50 hover:shadow-md transition-all cursor-pointer`}
+      className={`p-3 bg-card border border-border hover:border-primary/50 hover:shadow-md transition-all cursor-pointer ${
+        isUpdating ? "opacity-60" : ""
+      }`}
     >
       <div className="space-y-2">
         <div className="flex flex-wrap gap-1.5">
