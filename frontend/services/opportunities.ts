@@ -36,13 +36,13 @@ export interface Opportunity {
 }
 
 /**
- * Obtiene todas las oportunidades de la base de datos con sus relaciones
+ * Gets all opportunities from the database with their relations
  */
 export async function getOpportunities(): Promise<Opportunity[]> {
   try {
-    // Obtener oportunidades con JOINs a Clients y Profiles
-    // Nota: La sintaxis de Supabase para relaciones depende de cómo estén configuradas las foreign keys
-    // Intentamos primero con la sintaxis estándar, si falla, haremos queries separadas
+    // Get opportunities with JOINs to Clients and Profiles
+    // Note: Supabase relation syntax depends on how foreign keys are configured
+    // We try the standard syntax first, if it fails, we'll do separate queries
     const { data: opportunities, error: opportunitiesError } = await supabase
       .from("Opportunities")
       .select(`
@@ -64,12 +64,12 @@ export async function getOpportunities(): Promise<Opportunity[]> {
       `)
       .order('created_at', { ascending: false })
 
-    // Si hay error con la sintaxis de relación, intentamos sin JOINs y hacemos queries separadas
+    // If there's an error with relation syntax, try without JOINs and do separate queries
     let opportunitiesData = opportunities
     if (opportunitiesError) {
       console.warn('Error with relation syntax, trying separate queries:', opportunitiesError.message)
       
-      // Query sin relaciones
+      // Query without relations
       const { data: oppsWithoutRelations, error: simpleError } = await supabase
         .from("Opportunities")
         .select('id, client_id, assigned_user_id, status, original_message, ai_summary, urgency, created_at')
@@ -82,7 +82,7 @@ export async function getOpportunities(): Promise<Opportunity[]> {
 
       opportunitiesData = oppsWithoutRelations || []
 
-      // Obtener clients y profiles por separado
+      // Get clients and profiles separately
       if (opportunitiesData.length > 0) {
         const clientIds = [...new Set(opportunitiesData.map((opp: any) => opp.client_id).filter(Boolean))]
         const userIds = [...new Set(opportunitiesData.map((opp: any) => opp.assigned_user_id).filter(Boolean))]
@@ -95,7 +95,7 @@ export async function getOpportunities(): Promise<Opportunity[]> {
         const clientsMap = new Map((clientsResult.data || []).map((c: any) => [c.id, c]))
         const profilesMap = new Map((profilesResult.data || []).map((p: any) => [p.id, p]))
 
-        // Agregar datos relacionados
+        // Add related data
         opportunitiesData = opportunitiesData.map((opp: any) => ({
           ...opp,
           Clients: clientsMap.get(opp.client_id) || null,
@@ -108,14 +108,14 @@ export async function getOpportunities(): Promise<Opportunity[]> {
       return []
     }
 
-    // Obtener las skills para cada oportunidad
-    // Primero, intentamos obtener las skills desde una tabla de relación
-    // Si no existe, usaremos required_skill_id directamente
+    // Get skills for each opportunity
+    // First, try to get skills from a relation table
+    // If it doesn't exist, we'll use required_skill_id directly
     const opportunityIds = opportunitiesData.map((opp: any) => opp.id)
     
-    // Intentar obtener skills desde una tabla de relación (si existe)
-    // Por ahora, asumimos que hay una tabla opportunity_skills o similar
-    // Si no existe, usaremos required_skill_id directamente
+    // Try to get skills from a relation table (if it exists)
+    // For now, we assume there's an opportunity_skills table or similar
+    // If it doesn't exist, we'll use required_skill_id directly
     const { data: opportunitySkills, error: skillsError } = await supabase
       .from('opportunity_skills')
       .select(`
@@ -127,11 +127,11 @@ export async function getOpportunities(): Promise<Opportunity[]> {
       `)
       .in('opportunity_id', opportunityIds)
 
-    // Si no hay tabla de relación, intentamos obtener skills directamente desde required_skill_id
+    // If there's no relation table, try to get skills directly from required_skill_id
     let skillsMap: Record<string, { id: string; name: string }[]> = {}
     
     if (skillsError || !opportunitySkills || opportunitySkills.length === 0) {
-      // Intentar obtener skills desde el campo required_skill_id
+      // Try to get skills from the required_skill_id field
       const { data: opportunitiesWithSkillId } = await supabase
         .from("Opportunities")
         .select('id, required_skill_id')
@@ -149,7 +149,7 @@ export async function getOpportunities(): Promise<Opportunity[]> {
             .in('id', skillIds)
 
           if (skills) {
-            // Crear un mapa de skills por oportunidad
+            // Create a map of skills per opportunity
             opportunitiesWithSkillId.forEach(opp => {
               if (opp.required_skill_id) {
                 const skill = skills.find(s => s.id === opp.required_skill_id)
@@ -165,7 +165,7 @@ export async function getOpportunities(): Promise<Opportunity[]> {
         }
       }
     } else {
-      // Mapear skills desde la tabla de relación
+      // Map skills from the relation table
       opportunitySkills.forEach((os: any) => {
         if (os.skill) {
           if (!skillsMap[os.opportunity_id]) {
@@ -176,20 +176,20 @@ export async function getOpportunities(): Promise<Opportunity[]> {
       })
     }
 
-    // Transformar los datos al formato esperado por el frontend
+    // Transform data to the format expected by the frontend
     const transformedOpportunities: Opportunity[] = opportunitiesData.map((opp: any) => {
       const skills = skillsMap[opp.id] || []
       const skillNames = skills.map((s: any) => s.name)
       
-      // Manejar tanto la sintaxis con relación como sin relación
+      // Handle both relation syntax and non-relation syntax
       const client = opp.Clients || opp.client || null
       const assignedUser = opp.Profiles || opp.assigned_user || null
       
-      // Determinar el status inicial
+      // Determine initial status
       let status = (opp.status?.toLowerCase() || 'new') as "new" | "assigned" | "done"
       
-      // Lógica de limpieza: Si hay un miembro asignado pero el status es 'new', cambiar a 'assigned'
-      // Esto corrige inconsistencias en los datos de la DB
+      // Cleanup logic: If there's an assigned member but status is 'new', change to 'assigned'
+      // This fixes inconsistencies in the DB data
       const hasAssignedUser = opp.assigned_user_id !== null && opp.assigned_user_id !== undefined
       if (hasAssignedUser && status === 'new') {
         status = 'assigned'
@@ -221,10 +221,10 @@ export async function getOpportunities(): Promise<Opportunity[]> {
 }
 
 /**
- * Actualiza el estado de una oportunidad en la base de datos
- * @param id - ID de la oportunidad
- * @param newStatus - Nuevo estado: "new", "assigned", o "done"
- * @returns La oportunidad actualizada o null si hay error
+ * Updates the status of an opportunity in the database
+ * @param id - Opportunity ID
+ * @param newStatus - New status: "new", "assigned", or "done"
+ * @returns The updated opportunity or null if there's an error
  */
 export async function updateOpportunityStatus(
   id: string,
@@ -255,7 +255,7 @@ export async function updateOpportunityStatus(
       .single()
 
     if (error) {
-      console.error('Error completo:', error)
+      console.error('Error fetching count:', error)
       throw error
     }
 
@@ -281,7 +281,7 @@ export async function updateOpportunityStatus(
       }
     }
 
-    // Intentar también desde tabla de relación
+    // Try also from relation table
     if (skills.length === 0) {
       const { data: opportunitySkills } = await supabase
         .from('opportunity_skills')
@@ -325,7 +325,7 @@ export async function updateOpportunityStatus(
 }
 
 /**
- * Obtiene el conteo total de oportunidades
+ * Gets the total count of opportunities
  */
 export async function getTotalOpportunitiesCount(): Promise<number> {
   try {
@@ -334,7 +334,7 @@ export async function getTotalOpportunitiesCount(): Promise<number> {
       .select('*', { count: 'exact', head: true })
 
     if (error) {
-      console.error('Error completo:', error)
+      console.error('Error fetching count:', error)
       throw error
     }
 
@@ -346,22 +346,22 @@ export async function getTotalOpportunitiesCount(): Promise<number> {
 }
 
 /**
- * Actualiza la asignación de una oportunidad (assigned_user_id y status)
- * @param id - ID de la oportunidad
- * @param assignedUserId - ID del usuario asignado (UUID de Profiles)
- * @returns La oportunidad actualizada o null si hay error
+ * Updates the assignment of an opportunity (assigned_user_id and status)
+ * @param id - Opportunity ID
+ * @param assignedUserId - Assigned user ID (UUID from Profiles)
+ * @returns The updated opportunity or null if there's an error
  */
 export async function updateOpportunityAssignment(
   id: string,
   assignedUserId: string
 ): Promise<Opportunity | null> {
   try {
-    // Validar que el ID no esté vacío
+    // Validate that the ID is not empty
     if (!id || id.trim() === '') {
       throw new Error('Opportunity ID is required')
     }
 
-    // Validar que el assignedUserId no esté vacío
+    // Validate that assignedUserId is not empty
     if (!assignedUserId || assignedUserId.trim() === '') {
       throw new Error('Assigned user ID is required')
     }
@@ -374,7 +374,7 @@ export async function updateOpportunityAssignment(
       columns: ['assigned_user_id', 'status'],
     })
 
-    // Actualizar assigned_user_id y status a 'assigned' en una sola operación
+    // Update assigned_user_id and status to 'assigned' in a single operation
     const { data, error } = await supabase
       .from("Opportunities")
       .update({ 
@@ -402,7 +402,7 @@ export async function updateOpportunityAssignment(
       .single()
 
     if (error) {
-      console.error('Error completo:', error)
+      console.error('Error fetching count:', error)
       throw error
     }
 
@@ -428,7 +428,7 @@ export async function updateOpportunityAssignment(
       }
     }
 
-    // Intentar también desde tabla de relación
+    // Try also from relation table
     if (skills.length === 0) {
       const { data: opportunitySkills } = await supabase
         .from('opportunity_skills')
@@ -472,10 +472,10 @@ export async function updateOpportunityAssignment(
 }
 
 /**
- * Actualiza los detalles de una oportunidad (ai_summary, urgency, required_skill_id)
- * @param id - ID de la oportunidad (UUID)
- * @param updates - Objeto con los campos a actualizar
- * @returns La oportunidad actualizada o null si hay error
+ * Updates the details of an opportunity (ai_summary, urgency, required_skill_id)
+ * @param id - Opportunity ID (UUID)
+ * @param updates - Object with fields to update
+ * @returns The updated opportunity or null if there's an error
  */
 export async function updateOpportunityDetails(
   id: string,
@@ -486,12 +486,12 @@ export async function updateOpportunityDetails(
   }
 ): Promise<Opportunity | null> {
   try {
-    // Validar que el ID no esté vacío
+    // Validate that the ID is not empty
     if (!id || id.trim() === '') {
       throw new Error('Opportunity ID is required')
     }
 
-    // Construir objeto de actualización solo con los campos proporcionados
+    // Build update object only with provided fields
     const updateData: Record<string, any> = {}
     
     if (updates.ai_summary !== undefined) {
@@ -499,19 +499,19 @@ export async function updateOpportunityDetails(
     }
     
     if (updates.urgency !== undefined) {
-      // Normalizar urgency a minúsculas
+      // Normalize urgency to lowercase
       updateData.urgency = updates.urgency.toLowerCase()
     }
     
     if (updates.required_skill_id !== undefined) {
-      // Si es null, establecer como null
+      // If it's null, set as null
       if (updates.required_skill_id === null) {
         updateData.required_skill_id = null
       } else if (updates.required_skill_id.trim() !== '') {
-        // Validar que required_skill_id sea un UUID válido (no un nombre como 'React')
+        // Validate that required_skill_id is a valid UUID (not a name like 'React')
         const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
         if (!uuidRegex.test(updates.required_skill_id)) {
-          throw new Error(`required_skill_id debe ser un UUID válido, no un nombre. Valor recibido: ${updates.required_skill_id}`)
+          throw new Error(`required_skill_id must be a valid UUID, not a name. Received value: ${updates.required_skill_id}`)
         }
         updateData.required_skill_id = updates.required_skill_id
       } else {
@@ -519,7 +519,7 @@ export async function updateOpportunityDetails(
       }
     }
 
-    console.log(`[updateOpportunityDetails] Actualizando oportunidad:`, {
+    console.log(`[updateOpportunityDetails] Updating opportunity:`, {
       opportunityId: id,
       updates: updateData,
     })
@@ -549,7 +549,7 @@ export async function updateOpportunityDetails(
       .single()
 
     if (error) {
-      console.error('Error completo:', error)
+      console.error('Error fetching count:', error)
       throw error
     }
 
@@ -557,7 +557,7 @@ export async function updateOpportunityDetails(
       return null
     }
 
-    // Obtener skills para esta oportunidad usando UUID
+    // Get skills for this opportunity using UUID
     let skills: { id: string; name: string }[] = []
     
     if (data.required_skill_id) {
@@ -571,7 +571,7 @@ export async function updateOpportunityDetails(
       }
     }
 
-    // Intentar también desde tabla de relación
+    // Try also from relation table
     if (skills.length === 0) {
       const { data: opportunitySkills } = await supabase
         .from('opportunity_skills')
@@ -615,13 +615,13 @@ export async function updateOpportunityDetails(
 }
 
 /**
- * Crea una nueva oportunidad
- * @param clientId - ID del cliente (UUID)
- * @param originalMessage - Mensaje original del cliente
- * @param aiSummary - Resumen generado por AI
- * @param urgency - Urgencia: "high", "medium", o "low"
- * @param requiredSkillId - ID de la skill requerida (UUID) o null
- * @returns La oportunidad creada
+ * Creates a new opportunity
+ * @param clientId - Client ID (UUID)
+ * @param originalMessage - Original client message
+ * @param aiSummary - AI-generated summary
+ * @param urgency - Urgency: "high", "medium", or "low"
+ * @param requiredSkillId - Required skill ID (UUID) or null
+ * @returns The created opportunity
  */
 export async function createOpportunity(
   clientId: string,
@@ -631,13 +631,13 @@ export async function createOpportunity(
   requiredSkillId: string | null = null
 ): Promise<Opportunity> {
   try {
-    // Validar que clientId sea un UUID válido
+    // Validate that clientId is a valid UUID
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
     if (!uuidRegex.test(clientId)) {
       throw new Error(`Invalid UUID format for client_id: ${clientId}`)
     }
 
-    // Validar requiredSkillId si se proporciona
+    // Validate requiredSkillId if provided
     if (requiredSkillId && !uuidRegex.test(requiredSkillId)) {
       throw new Error(`Invalid UUID format for required_skill_id: ${requiredSkillId}`)
     }
@@ -674,7 +674,7 @@ export async function createOpportunity(
       .single()
 
     if (error) {
-      console.error('Error completo:', error)
+      console.error('Error fetching count:', error)
       throw error
     }
 
@@ -682,7 +682,7 @@ export async function createOpportunity(
       throw new Error('Failed to create opportunity')
     }
 
-    // Obtener skills para esta oportunidad
+    // Get skills for this opportunity
     let skills: { id: string; name: string }[] = []
     
     if (data.required_skill_id) {
@@ -723,7 +723,7 @@ export async function createOpportunity(
 }
 
 /**
- * Obtiene el conteo de oportunidades activas (status = 'assigned')
+ * Gets the count of active opportunities (status = 'assigned')
  */
 export async function getActiveOpportunitiesCount(): Promise<number> {
   try {
@@ -733,7 +733,7 @@ export async function getActiveOpportunitiesCount(): Promise<number> {
       .eq('status', 'assigned')
 
     if (error) {
-      console.error('Error completo:', error)
+      console.error('Error fetching count:', error)
       throw error
     }
 

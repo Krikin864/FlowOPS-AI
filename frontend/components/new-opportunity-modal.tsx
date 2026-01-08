@@ -24,7 +24,7 @@ export default function NewOpportunityModal({ open, onOpenChange }: NewOpportuni
   const [clientSuggestions, setClientSuggestions] = useState<Client[]>([])
   const [showSuggestions, setShowSuggestions] = useState(false)
 
-  // Cargar clientes cuando se abre el modal
+  // Load clients when the modal opens
   useEffect(() => {
     async function loadClients() {
       if (!open) return
@@ -40,7 +40,7 @@ export default function NewOpportunityModal({ open, onOpenChange }: NewOpportuni
     loadClients()
   }, [open])
 
-  // Filtrar sugerencias basadas en el input
+  // Filter suggestions based on input
   useEffect(() => {
     if (clientName.trim() === '') {
       setClientSuggestions([])
@@ -137,7 +137,18 @@ export default function NewOpportunityModal({ open, onOpenChange }: NewOpportuni
           </div>
 
           <div>
-            <Label htmlFor="client-text">Client Communication / Requirements</Label>
+            <div className="flex items-center justify-between mb-2">
+              <Label htmlFor="client-text">Paste Client Email/Description</Label>
+              <Button 
+                onClick={handleAnalyzeWithAI} 
+                disabled={!clientName || !company || !clientText} 
+                size="sm"
+                className="gap-2"
+              >
+                <Plus className="h-4 w-4" />
+                Analyze with AI
+              </Button>
+            </div>
             <Textarea
               id="client-text"
               placeholder="Paste the client's email, message, or requirements here..."
@@ -151,10 +162,6 @@ export default function NewOpportunityModal({ open, onOpenChange }: NewOpportuni
           <div className="flex gap-3 justify-end pt-4 border-t border-border">
             <Button variant="outline" onClick={handleCloseAll}>
               Cancel
-            </Button>
-            <Button onClick={handleAnalyzeWithAI} disabled={!clientName || !company || !clientText} className="gap-2">
-              <Plus className="h-4 w-4" />
-              Analyze with AI
             </Button>
           </div>
         </div>

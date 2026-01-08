@@ -19,7 +19,7 @@ export default function TeamPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [availableSkills, setAvailableSkills] = useState<Skill[]>([])
 
-  // Cargar skills desde la base de datos al cargar la página
+  // Load skills from the database when the page loads
   useEffect(() => {
     async function loadSkills() {
       try {
@@ -34,7 +34,7 @@ export default function TeamPage() {
     loadSkills()
   }, [])
 
-  // Cargar miembros del equipo desde Supabase
+  // Load team members from Supabase
   useEffect(() => {
     async function loadTeamMembers() {
       try {
@@ -52,7 +52,7 @@ export default function TeamPage() {
     loadTeamMembers()
   }, [])
 
-  // Función para manejar la creación de un nuevo miembro
+  // Function to handle creating a new member
   const handleCreateMember = async (formData: MemberFormData) => {
     try {
       const newMember = await createTeamMember({
@@ -62,15 +62,15 @@ export default function TeamPage() {
         skillIds: formData.skillIds,
       })
 
-      // Actualizar la lista de miembros
+      // Update the member list
       setTeamMembers([...teamMembers, newMember])
-      toast.success('Miembro del equipo agregado exitosamente')
+      toast.success('Team member added successfully')
       setShowAddModal(false)
     } catch (error: any) {
       console.error('Error creating team member:', error)
-      const errorMessage = error?.message || 'Error al crear el miembro del equipo'
+      const errorMessage = error?.message || 'Error creating team member'
       toast.error(errorMessage)
-      throw error // Re-lanzar para que el formulario maneje el error
+      throw error // Re-throw so the form can handle the error
     }
   }
 

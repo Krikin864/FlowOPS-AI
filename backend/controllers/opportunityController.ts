@@ -30,21 +30,21 @@ export interface OpportunityFromDB {
 }
 
 /**
- * Crea una nueva oportunidad en la base de datos
- * @param input - Datos de la oportunidad a crear
- * @returns La oportunidad creada o null si hay error
+ * Creates a new opportunity in the database
+ * @param input - Opportunity data to create
+ * @returns The created opportunity or null if there's an error
  */
 export async function createOpportunity(input: CreateOpportunityInput): Promise<OpportunityFromDB | null> {
   try {
-    // Validar campos requeridos
+    // Validate required fields
     if (!input.clientName || !input.company || !input.originalMessage) {
-      throw new Error('clientName, company y originalMessage son campos requeridos')
+      throw new Error('clientName, company, and originalMessage are required fields')
     }
 
-    // 1. Buscar o crear el cliente
+    // 1. Find or create the client
     let clientId: string
 
-    // Buscar cliente existente por nombre y compañía
+    // Search for existing client by name and company
     const { data: existingClient, error: clientSearchError } = await supabase
       .from('Clients')
       .select('id')
@@ -53,15 +53,15 @@ export async function createOpportunity(input: CreateOpportunityInput): Promise<
       .single()
 
     if (clientSearchError && clientSearchError.code !== 'PGRST116') {
-      // PGRST116 es "no rows returned", que es esperado si no existe
-      console.error('Error buscando cliente:', clientSearchError)
+      // PGRST116 is "no rows returned", which is expected if it doesn't exist
+      console.error('Error searching for client:', clientSearchError)
       throw clientSearchError
     }
 
     if (existingClient) {
       clientId = existingClient.id
     } else {
-      // Crear nuevo cliente
+      // Create new client
       const { data: newClient, error: clientCreateError } = await supabase
         .from('Clients')
         .insert({
@@ -72,25 +72,25 @@ export async function createOpportunity(input: CreateOpportunityInput): Promise<
         .single()
 
       if (clientCreateError) {
-        console.error('Error creando cliente:', clientCreateError)
+        console.error('Error creating client:', clientCreateError)
         throw clientCreateError
       }
 
       if (!newClient) {
-        throw new Error('No se pudo crear el cliente')
+        throw new Error('Could not create client')
       }
 
       clientId = newClient.id
     }
 
-    // 2. Determinar el status inicial
-    // Regla: Si hay un usuario asignado, el status debe ser 'assigned'
+    // 2. Determine initial status
+    // Rule: If there's an assigned user, the status must be 'assigned'
     let status: string = 'new'
     if (input.assignedUserId) {
       status = 'assigned'
     }
 
-    // 3. Crear la oportunidad
+    // 3. Create the opportunity
     const opportunityData: any = {
       client_id: clientId,
       original_message: input.originalMessage,
@@ -99,7 +99,7 @@ export async function createOpportunity(input: CreateOpportunityInput): Promise<
       assigned_user_id: input.assignedUserId || null,
     }
 
-    // Agregar campos opcionales si están presentes
+    // Add optional fields if present
     if (input.aiSummary) {
       opportunityData.ai_summary = input.aiSummary
     }
@@ -132,18 +132,17 @@ export async function createOpportunity(input: CreateOpportunityInput): Promise<
       .single()
 
     if (opportunityError) {
-      console.error('Error creando oportunidad:', opportunityError)
+      console.error('Error creating opportunity:', opportunityError)
       throw opportunityError
     }
 
     if (!opportunity) {
-      throw new Error('No se pudo crear la oportunidad')
+      throw new Error('Could not create opportunity')
     }
 
     return opportunity as OpportunityFromDB
   } catch (error: any) {
-    console.error('Error en createOpportunity:', error)
+    console.error('Error in createOpportunity:', error)
     throw error
   }
 }
-

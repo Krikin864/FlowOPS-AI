@@ -4,7 +4,7 @@ export interface CreateMemberInput {
   fullName: string
   email: string
   role: 'Sales' | 'Tech' | 'Admin'
-  skillIds: string[] // Array de UUIDs de skills
+  skillIds: string[] // Array of skill UUIDs
 }
 
 export interface MemberFromDB {
@@ -16,29 +16,29 @@ export interface MemberFromDB {
 }
 
 /**
- * Crea un nuevo miembro del equipo en la base de datos
- * @param input - Datos del miembro a crear
- * @returns El miembro creado o null si hay error
+ * Creates a new team member in the database
+ * @param input - Member data to create
+ * @returns The created member or null if there's an error
  */
 export async function createMember(input: CreateMemberInput): Promise<MemberFromDB | null> {
   try {
-    // Validar campos requeridos
+    // Validate required fields
     if (!input.fullName || !input.email || !input.role) {
-      throw new Error('fullName, email y role son campos requeridos')
+      throw new Error('fullName, email, and role are required fields')
     }
 
-    // Validar formato de email
+    // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     if (!emailRegex.test(input.email)) {
-      throw new Error('El formato del email no es válido')
+      throw new Error('Email format is not valid')
     }
 
-    // Validar que skillIds sea un array (puede estar vacío)
+    // Validate that skillIds is an array (can be empty)
     if (!Array.isArray(input.skillIds)) {
-      throw new Error('skillIds debe ser un array')
+      throw new Error('skillIds must be an array')
     }
 
-    // 1. Verificar si el email ya existe
+    // 1. Check if the email already exists
     const { data: existingMember, error: checkError } = await supabase
       .from('Profiles')
       .select('id, email')
@@ -46,16 +46,16 @@ export async function createMember(input: CreateMemberInput): Promise<MemberFrom
       .single()
 
     if (checkError && checkError.code !== 'PGRST116') {
-      // PGRST116 es "no rows returned", que es esperado si no existe
-      console.error('Error verificando email existente:', checkError)
+      // PGRST116 is "no rows returned", which is expected if it doesn't exist
+      console.error('Error checking existing email:', checkError)
       throw checkError
     }
 
     if (existingMember) {
-      throw new Error('Ya existe un miembro con este email')
+      throw new Error('A member with this email already exists')
     }
 
-    // 2. Crear el perfil en la tabla Profiles
+    // 2. Create the profile in the Profiles table
     const { data: newMember, error: memberError } = await supabase
       .from('Profiles')
       .insert({
@@ -67,32 +67,32 @@ export async function createMember(input: CreateMemberInput): Promise<MemberFrom
       .single()
 
     if (memberError) {
-      console.error('Error creando miembro:', memberError)
+      console.error('Error creating member:', memberError)
       throw memberError
     }
 
     if (!newMember) {
-      throw new Error('No se pudo crear el miembro')
+      throw new Error('Could not create member')
     }
 
-    // 3. Vincular skills en la tabla user_skills si hay skills seleccionadas
+    // 3. Link skills in the user_skills table if there are selected skills
     if (input.skillIds.length > 0) {
-      // Validar que todas las skills existan en la base de datos
+      // Validate that all skills exist in the database
       const { data: existingSkills, error: skillsCheckError } = await supabase
         .from('Skills')
         .select('id')
         .in('id', input.skillIds)
 
       if (skillsCheckError) {
-        console.error('Error verificando skills:', skillsCheckError)
+        console.error('Error checking skills:', skillsCheckError)
         throw skillsCheckError
       }
 
       if (!existingSkills || existingSkills.length !== input.skillIds.length) {
-        throw new Error('Una o más skills no existen en la base de datos')
+        throw new Error('One or more skills do not exist in the database')
       }
 
-      // Crear las relaciones en user_skills
+      // Create the relationships in user_skills
       const userSkillsData = input.skillIds.map(skillId => ({
         user_id: newMember.id,
         skill_id: skillId,
@@ -103,8 +103,8 @@ export async function createMember(input: CreateMemberInput): Promise<MemberFrom
         .insert(userSkillsData)
 
       if (userSkillsError) {
-        console.error('Error vinculando skills:', userSkillsError)
-        // Intentar eliminar el miembro creado si falla la vinculación de skills
+        console.error('Error linking skills:', userSkillsError)
+        // Try to delete the created member if skill linking fails
         await supabase.from('Profiles').delete().eq('id', newMember.id)
         throw userSkillsError
       }
@@ -118,8 +118,7 @@ export async function createMember(input: CreateMemberInput): Promise<MemberFrom
       created_at: newMember.created_at,
     }
   } catch (error: any) {
-    console.error('Error en createMember:', error)
+    console.error('Error in createMember:', error)
     throw error
   }
 }
-

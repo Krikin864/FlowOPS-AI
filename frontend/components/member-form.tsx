@@ -112,12 +112,12 @@ export default function MemberForm({ open, onOpenChange, onSubmit, availableSkil
 
       await onSubmit(formData)
       
-      // Si el submit fue exitoso, cerrar el modal y resetear
+      // If submit was successful, close modal and reset
       handleClose()
     } catch (error) {
-      console.error("Error al crear miembro:", error)
-      // El error debería ser manejado por la función onSubmit
-      // pero mantenemos el modal abierto para que el usuario pueda corregir
+      console.error("Error creating member:", error)
+      // Error should be handled by the onSubmit function
+      // but we keep the modal open so the user can correct it
     } finally {
       setIsSubmitting(false)
     }
@@ -129,15 +129,15 @@ export default function MemberForm({ open, onOpenChange, onSubmit, availableSkil
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Agregar Miembro del Equipo</DialogTitle>
+          <DialogTitle>Add Team Member</DialogTitle>
           <DialogDescription>
-            Completa los campos para agregar un nuevo miembro al equipo
+            Fill in the fields to add a new team member
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
           <div>
-            <Label htmlFor="member-name">Nombre</Label>
+            <Label htmlFor="member-name">Name</Label>
             <Input
               id="member-name"
               placeholder="e.g., Juan Pérez"
@@ -160,10 +160,10 @@ export default function MemberForm({ open, onOpenChange, onSubmit, availableSkil
           </div>
 
           <div>
-            <Label htmlFor="member-role">Rol</Label>
+            <Label htmlFor="member-role">Role</Label>
             <Select value={role} onValueChange={(value) => setRole(value as "Sales" | "Tech" | "Admin")} disabled={isSubmitting}>
               <SelectTrigger id="member-role" className="w-full">
-                <SelectValue placeholder="Selecciona un rol" />
+                <SelectValue placeholder="Select a role" />
               </SelectTrigger>
               <SelectContent>
                 {ROLES.map((r) => (
@@ -222,7 +222,7 @@ export default function MemberForm({ open, onOpenChange, onSubmit, availableSkil
                     ))
                   ) : (
                     <p className="text-sm text-muted-foreground italic w-full text-center">
-                      {selectedSkillIds.length > 0 ? "Todas las skills han sido seleccionadas" : "No hay skills disponibles"}
+                      {selectedSkillIds.length > 0 ? "All skills have been selected" : "No skills available"}
                     </p>
                   )}
                 </div>
@@ -232,7 +232,7 @@ export default function MemberForm({ open, onOpenChange, onSubmit, availableSkil
 
           <div className="flex gap-3 justify-end pt-4 border-t border-border">
             <Button variant="outline" onClick={handleClose} disabled={isSubmitting}>
-              Cancelar
+              Cancel
             </Button>
             <Button 
               onClick={handleSubmit} 
@@ -240,7 +240,7 @@ export default function MemberForm({ open, onOpenChange, onSubmit, availableSkil
               className="gap-2"
             >
               <UserPlus className="h-4 w-4" />
-              {isSubmitting ? "Agregando..." : "Agregar Miembro"}
+              {isSubmitting ? "Adding..." : "Add Member"}
             </Button>
           </div>
         </div>

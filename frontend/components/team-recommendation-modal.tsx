@@ -36,10 +36,10 @@ export default function TeamRecommendationModal({
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([])
   const [isLoading, setIsLoading] = useState(true)
 
-  // Cargar miembros del equipo desde Supabase
+  // Load team members from Supabase
   useEffect(() => {
     async function loadTeamMembers() {
-      if (!open) return // Solo cargar cuando el modal esté abierto
+      if (!open) return // Only load when the modal is open
       
       try {
         setIsLoading(true)
@@ -55,12 +55,12 @@ export default function TeamRecommendationModal({
     loadTeamMembers()
   }, [open])
 
-  // Normalizar requiredSkill a array para comparación
+  // Normalize requiredSkill to array for comparison
   const requiredSkills = Array.isArray(opportunity.requiredSkill) 
     ? opportunity.requiredSkill 
     : [opportunity.requiredSkill]
 
-  // Filtrar miembros que tienen al menos una de las skills requeridas
+  // Filter members who have at least one of the required skills
   const matchingMembers = teamMembers.filter((member) =>
     requiredSkills.some(skill => member.skills.includes(skill))
   )

@@ -28,8 +28,9 @@ export default function AIReviewOverlay({ clientName, company, clientText, onBac
   const [isEditing, setIsEditing] = useState(false)
   const [skills, setSkills] = useState<Skill[]>([])
   const [isSaving, setIsSaving] = useState(false)
+  const [aiSuggestedSkills, setAiSuggestedSkills] = useState<string[]>([])
 
-  // Cargar skills desde la DB
+  // Load skills from the DB
   useEffect(() => {
     async function loadSkills() {
       try {
@@ -43,22 +44,112 @@ export default function AIReviewOverlay({ clientName, company, clientText, onBac
     loadSkills()
   }, [])
 
-  // Simular procesamiento de AI
+  // Process email with real AI
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setSummary(
-        "Client needs expert support to implement a modern frontend solution with React and TypeScript for their upcoming product launch.",
-      )
-      // Buscar skill "React" por nombre y establecer su ID
-      const reactSkill = skills.find(s => s.name.toLowerCase() === "react")
-      setSkillId(reactSkill ? reactSkill.id : "none")
-      setUrgency("High")
-      setShowResults(true)
-      setIsProcessing(false)
-    }, 2000)
+    async function processEmailWithAI() {
+      if (!clientText || clientText.trim().length === 0) {
+        setIsProcessing(false)
+        return
+      }
 
-    return () => clearTimeout(timer)
-  }, [skills])
+      try {
+        setIsProcessing(true)
+        
+        // Call the API to process the email
+        const response = await fetch('/api/ai/process-email', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            emailContent: clientText,
+          }),
+        })
+
+        if (!response.ok) {
+          const errorText = await response.text()
+          console.error('API Error Response:', errorText)
+          let errorData
+          try {
+            errorData = JSON.parse(errorText)
+          } catch {
+            errorData = { error: errorText || 'Error processing email' }
+          }
+          throw new Error(errorData.error || 'Error processing email')
+        }
+
+        // Get the response text before parsing
+        const responseText = await response.text()
+        console.log('API Response (raw):', responseText)
+        
+        // Parse the JSON
+        let aiResult
+        try {
+          aiResult = JSON.parse(responseText)
+        } catch (parseError: any) {
+          console.error('Error parsing JSON from server. Raw response:', responseText)
+          console.error('Parse error:', parseError.message)
+          throw new Error(`Error parsing server response: ${parseError.message}`)
+        }
+        
+        console.log('API Response (parsed):', aiResult)
+
+        // Auto-fill fields with AI results
+        setSummary(aiResult.summary || '')
+        
+        // Map priority to urgency (priority comes as "Low", "Medium", "High")
+        const priorityToUrgency: Record<string, string> = {
+          'Low': 'Low',
+          'Medium': 'Medium',
+          'High': 'High',
+        }
+        setUrgency(priorityToUrgency[aiResult.priority] || 'Medium')
+
+        // Save skills suggested by AI
+        setAiSuggestedSkills(aiResult.required_skills || [])
+
+        // Find the first skill mentioned in the DB skills list
+        // If there are multiple skills, try to find the first match
+        if (aiResult.required_skills && aiResult.required_skills.length > 0) {
+          // Find the first skill that matches (case-insensitive)
+          const matchedSkill = skills.find(skill => 
+            aiResult.required_skills.some((reqSkill: string) => 
+              skill.name.toLowerCase() === reqSkill.toLowerCase()
+            )
+          )
+          
+          if (matchedSkill) {
+            setSkillId(matchedSkill.id)
+          } else {
+            // If there's no exact match, try partial match
+            const partialMatch = skills.find(skill => 
+              aiResult.required_skills.some((reqSkill: string) => 
+                skill.name.toLowerCase().includes(reqSkill.toLowerCase()) ||
+                reqSkill.toLowerCase().includes(skill.name.toLowerCase())
+              )
+            )
+            setSkillId(partialMatch ? partialMatch.id : 'none')
+          }
+        } else {
+          setSkillId('none')
+        }
+
+        setShowResults(true)
+        setIsProcessing(false)
+      } catch (error: any) {
+        console.error('Error processing email with AI:', error)
+        toast.error(`Error processing email: ${error.message || 'Unknown error'}`)
+        setIsProcessing(false)
+        // Show empty results so user can complete manually
+        setShowResults(true)
+      }
+    }
+
+    // Only process if skills are loaded
+    if (skills.length > 0) {
+      processEmailWithAI()
+    }
+  }, [clientText, skills])
 
   const handleConfirm = async () => {
     if (!summary || skillId === "none" || !urgency) {
@@ -69,10 +160,10 @@ export default function AIReviewOverlay({ clientName, company, clientText, onBac
     try {
       setIsSaving(true)
 
-      // 1. Buscar o crear el cliente
+      // 1. Find or create the client
       const client = await findOrCreateClient(clientName, company)
 
-      // 2. Crear la oportunidad en Supabase
+      // 2. Create the opportunity in Supabase
       const newOpportunity = await createOpportunity(
         client.id,
         clientText,
@@ -81,7 +172,7 @@ export default function AIReviewOverlay({ clientName, company, clientText, onBac
         skillId !== "none" ? skillId : null
       )
 
-      // 3. Disparar evento para actualizar el Kanban
+      // 3. Dispatch event to update the Kanban
       window.dispatchEvent(
         new CustomEvent("addOpportunity", {
           detail: newOpportunity,
@@ -177,7 +268,14 @@ export default function AIReviewOverlay({ clientName, company, clientText, onBac
                         </SelectContent>
                       </Select>
                     ) : (
-                      <p className="text-sm font-medium mt-1 text-foreground">{selectedSkill?.name || 'No skill'}</p>
+                      <div className="mt-1">
+                        <p className="text-sm font-medium text-foreground">{selectedSkill?.name || 'No skill'}</p>
+                        {aiSuggestedSkills.length > 0 && (
+                          <p className="text-xs text-muted-foreground mt-1">
+                            AI suggested: {aiSuggestedSkills.join(', ')}
+                          </p>
+                        )}
+                      </div>
                     )}
                   </div>
 

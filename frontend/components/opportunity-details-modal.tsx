@@ -45,13 +45,13 @@ export default function OpportunityDetailsModal({
         const skillsData = await getSkills()
         setSkills(skillsData)
         
-        // Si la oportunidad tiene una skill, encontrar su ID por nombre
+        // If the opportunity has a skill, find its ID by name
         const currentSkills = Array.isArray(opportunity.requiredSkill) 
           ? opportunity.requiredSkill 
           : [opportunity.requiredSkill]
         
         if (currentSkills.length > 0 && currentSkills[0] && skillsData.length > 0) {
-          // Buscar el ID de la skill actual por nombre
+          // Find the ID of the current skill by name
           const currentSkill = skillsData.find(s => currentSkills.includes(s.name))
           if (currentSkill) {
             setEditedValues(prev => ({ ...prev, skillId: currentSkill.id }))
@@ -83,7 +83,7 @@ export default function OpportunityDetailsModal({
   const handleEditStart = () => {
     setEditedValues({
       summary: opportunity.aiSummary,
-      skillId: "none", // Se establecerá cuando se carguen las skills
+      skillId: "none", // Will be set when skills are loaded
       urgency: opportunity.urgency,
     })
     setIsEditing(true)
@@ -95,14 +95,14 @@ export default function OpportunityDetailsModal({
     try {
       setIsSaving(true)
 
-      // Preparar los datos para actualizar
+      // Prepare data for update
       const updates: {
         ai_summary?: string
         urgency?: string
         required_skill_id?: string | null
       } = {}
 
-      // Solo incluir campos que han cambiado
+      // Only include fields that have changed
       if (editedValues.summary !== opportunity.aiSummary) {
         updates.ai_summary = editedValues.summary
       }
@@ -111,7 +111,7 @@ export default function OpportunityDetailsModal({
         updates.urgency = editedValues.urgency
       }
 
-      // Actualizar required_skill_id - IMPORTANTE: usar UUID, no nombre
+      // Update required_skill_id - IMPORTANT: use UUID, not name
       const currentSkills = Array.isArray(opportunity.requiredSkill) 
         ? opportunity.requiredSkill 
         : [opportunity.requiredSkill]
@@ -120,23 +120,23 @@ export default function OpportunityDetailsModal({
       const selectedSkill = skills.find(s => s.id === editedValues.skillId)
       
       if (editedValues.skillId === "none") {
-        // Si se seleccionó "none", establecer como null
+        // If "none" was selected, set as null
         if (currentSkills.length > 0) {
           updates.required_skill_id = null
         }
       } else if (selectedSkill) {
-        // Usar el UUID de la skill seleccionada, no el nombre
+        // Use the UUID of the selected skill, not the name
         if (selectedSkill.name !== currentSkillName) {
-          updates.required_skill_id = selectedSkill.id // UUID, no nombre
+          updates.required_skill_id = selectedSkill.id // UUID, not name
         }
       }
 
-      // Solo actualizar si hay cambios
+      // Only update if there are changes
       if (Object.keys(updates).length > 0) {
         const updatedOpportunity = await updateOpportunityDetails(opportunity.id, updates)
         
         if (updatedOpportunity && onSaveEdits) {
-          // Pasar la oportunidad completa actualizada para que el Kanban se actualice
+          // Pass the complete updated opportunity so Kanban can update
           onSaveEdits(updatedOpportunity)
           toast.success('Opportunity updated successfully')
           setIsEditing(false)

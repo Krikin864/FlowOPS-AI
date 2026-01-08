@@ -7,23 +7,23 @@ export async function POST(request: NextRequest) {
     
     const { name, email, role, skillIds } = body
 
-    // Validar campos requeridos
+    // Validate required fields
     if (!name || !email || !role) {
       return NextResponse.json(
-        { error: 'name, email y role son campos requeridos' },
+        { error: 'name, email, and role are required fields' },
         { status: 400 }
       )
     }
 
-    // Validar que skillIds sea un array
+    // Validate that skillIds is an array
     if (!Array.isArray(skillIds)) {
       return NextResponse.json(
-        { error: 'skillIds debe ser un array' },
+        { error: 'skillIds must be an array' },
         { status: 400 }
       )
     }
 
-    // Crear el miembro usando el controlador del backend
+    // Create the member using the backend controller
     const result = await createMember({
       fullName: name,
       email: email,
@@ -33,16 +33,16 @@ export async function POST(request: NextRequest) {
 
     if (!result) {
       return NextResponse.json(
-        { error: 'No se pudo crear el miembro' },
+        { error: 'Could not create member' },
         { status: 500 }
       )
     }
 
     return NextResponse.json(result, { status: 201 })
   } catch (error: any) {
-    console.error('Error en API route /api/members:', error)
+    console.error('Error in API route /api/members:', error)
     return NextResponse.json(
-      { error: error.message || 'Error al crear el miembro' },
+      { error: error.message || 'Error creating member' },
       { status: 500 }
     )
   }

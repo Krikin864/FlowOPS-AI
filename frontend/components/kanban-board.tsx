@@ -16,7 +16,7 @@ export default function KanbanBoard({ filters }: { filters?: any }) {
   const [recommendationModalOpen, setRecommendationModalOpen] = useState(false)
   const [opportunityToAssign, setOpportunityToAssign] = useState<Opportunity | null>(null)
 
-  // Cargar oportunidades desde Supabase
+  // Load opportunities from Supabase
   useEffect(() => {
     async function loadOpportunities() {
       try {
@@ -34,22 +34,22 @@ export default function KanbanBoard({ filters }: { filters?: any }) {
     loadOpportunities()
   }, [])
 
-  // Escuchar eventos de nuevas oportunidades y refrescar datos
+  // Listen for new opportunity events and refresh data
   useEffect(() => {
     const handleAddOpportunity = async (event: Event) => {
       const customEvent = event as CustomEvent
       const newOpportunity = customEvent.detail as Opportunity
       
-      // Agregar la nueva oportunidad al estado
+      // Add the new opportunity to state
       setOpportunities((prev) => {
-        // Verificar que no esté ya en la lista
+        // Check that it's not already in the list
         if (prev.find(opp => opp.id === newOpportunity.id)) {
           return prev
         }
         return [...prev, newOpportunity]
       })
 
-      // También refrescar desde la DB para asegurar que tenemos los datos más actualizados
+      // Also refresh from DB to ensure we have the most up-to-date data
       try {
         const data = await getOpportunities()
         setOpportunities(data)
@@ -96,9 +96,9 @@ export default function KanbanBoard({ filters }: { filters?: any }) {
     { status: "done" as const, title: "Done" },
   ]
 
-  // Función centralizada para actualizar el estado de una oportunidad
+  // Centralized function to update the status of an opportunity
   const handleUpdateStatus = async (id: string, newStatus: "new" | "assigned" | "done") => {
-    // Actualización optimista: actualizar UI inmediatamente
+    // Optimistic update: update UI immediately
     const previousOpportunities = [...opportunities]
     setOpportunities((prev) =>
       prev.map((opp) => (opp.id === id ? { ...opp, status: newStatus } : opp))
@@ -106,11 +106,11 @@ export default function KanbanBoard({ filters }: { filters?: any }) {
     setUpdatingIds((prev) => new Set(prev).add(id))
 
     try {
-      // Llamar a la API para persistir el cambio
+      // Call the API to persist the change
       const updatedOpportunity = await updateOpportunityStatus(id, newStatus)
       
       if (updatedOpportunity) {
-        // Actualizar con los datos reales de la DB
+        // Update with real data from DB
         setOpportunities((prev) =>
           prev.map((opp) => (opp.id === id ? updatedOpportunity : opp))
         )
@@ -119,7 +119,7 @@ export default function KanbanBoard({ filters }: { filters?: any }) {
         throw new Error('Failed to update opportunity')
       }
     } catch (error) {
-      // Revertir cambio en caso de error
+      // Revert change in case of error
       setOpportunities(previousOpportunities)
       toast.error('Failed to update opportunity status. Please try again.')
       console.error('Error updating opportunity status:', error)
@@ -188,7 +188,7 @@ export default function KanbanBoard({ filters }: { filters?: any }) {
 
   const handleSaveEdits = (updatedOpportunity: Opportunity) => {
     if (selectedOpportunity) {
-      // Actualizar con los datos reales de la DB (ya persistidos)
+      // Update with real data from DB (already persisted)
       setOpportunities((prev) => 
         prev.map((opp) => (opp.id === selectedOpportunity.id ? updatedOpportunity : opp))
       )

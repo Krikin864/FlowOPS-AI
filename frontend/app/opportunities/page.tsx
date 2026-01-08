@@ -29,7 +29,7 @@ export default function OpportunitiesPage() {
   const [error, setError] = useState<string | null>(null)
   const [showNewOpportunityModal, setShowNewOpportunityModal] = useState(false)
 
-  // Cargar oportunidades desde Supabase
+  // Load opportunities from Supabase
   useEffect(() => {
     async function loadOpportunities() {
       try {

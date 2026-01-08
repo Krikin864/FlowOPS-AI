@@ -7,10 +7,10 @@ export interface Client {
 }
 
 /**
- * Busca un cliente por nombre y company
- * @param name - Nombre del cliente
- * @param company - Nombre de la compañía
- * @returns El cliente si existe, null si no existe
+ * Searches for a client by name and company
+ * @param name - Client name
+ * @param company - Company name
+ * @returns The client if it exists, null if it doesn't exist
  */
 export async function findClientByNameAndCompany(
   name: string,
@@ -25,7 +25,7 @@ export async function findClientByNameAndCompany(
       .maybeSingle()
 
     if (error) {
-      console.error('Error completo:', error)
+      console.error('Error fetching client:', error)
       throw error
     }
 
@@ -37,10 +37,10 @@ export async function findClientByNameAndCompany(
 }
 
 /**
- * Crea un nuevo cliente
- * @param name - Nombre del cliente
- * @param company - Nombre de la compañía
- * @returns El cliente creado
+ * Creates a new client
+ * @param name - Client name
+ * @param company - Company name
+ * @returns The created client
  */
 export async function createClient(
   name: string,
@@ -57,7 +57,7 @@ export async function createClient(
       .single()
 
     if (error) {
-      console.error('Error completo:', error)
+      console.error('Error fetching client:', error)
       throw error
     }
 
@@ -73,24 +73,24 @@ export async function createClient(
 }
 
 /**
- * Busca o crea un cliente
- * @param name - Nombre del cliente
- * @param company - Nombre de la compañía
- * @returns El cliente (existente o recién creado)
+ * Searches for or creates a client
+ * @param name - Client name
+ * @param company - Company name
+ * @returns The client (existing or newly created)
  */
 export async function findOrCreateClient(
   name: string,
   company: string
 ): Promise<Client> {
   try {
-    // Primero buscar si existe
+    // First search if it exists
     const existingClient = await findClientByNameAndCompany(name, company)
     
     if (existingClient) {
       return existingClient
     }
 
-    // Si no existe, crearlo
+    // If it doesn't exist, create it
     return await createClient(name, company)
   } catch (error) {
     console.error('Error completo:', error)
@@ -99,8 +99,8 @@ export async function findOrCreateClient(
 }
 
 /**
- * Obtiene todos los clientes para sugerencias
- * @returns Lista de clientes
+ * Gets all clients for suggestions
+ * @returns List of clients
  */
 export async function getAllClients(): Promise<Client[]> {
   try {
@@ -110,7 +110,7 @@ export async function getAllClients(): Promise<Client[]> {
       .order('name', { ascending: true })
 
     if (error) {
-      console.error('Error completo:', error)
+      console.error('Error fetching client:', error)
       throw error
     }
 

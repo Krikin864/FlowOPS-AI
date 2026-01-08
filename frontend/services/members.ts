@@ -11,18 +11,18 @@ export interface TeamMember {
 }
 
 /**
- * Obtiene todos los miembros del equipo desde la base de datos con sus skills
+ * Gets all team members from the database with their skills
  */
 export async function getTeamMembers(): Promise<TeamMember[]> {
   try {
-    // Obtener todos los perfiles
+    // Get all profiles
     const { data: profiles, error: profilesError } = await supabase
       .from("Profiles")
       .select('id, full_name, email, role')
       .order('full_name', { ascending: true })
 
     if (profilesError) {
-      console.error('Error completo:', profilesError)
+      console.error('Error fetching profiles:', profilesError)
       throw profilesError
     }
 
@@ -30,10 +30,10 @@ export async function getTeamMembers(): Promise<TeamMember[]> {
       return []
     }
 
-    // Obtener todas las skills asociadas a los usuarios
+    // Get all skills associated with users
     const profileIds = profiles.map(p => p.id)
     
-    // Intentar obtener skills desde la tabla user_skills
+    // Try to get skills from the user_skills table
     const { data: userSkills, error: userSkillsError } = await supabase
       .from('user_skills')
       .select(`
@@ -45,7 +45,7 @@ export async function getTeamMembers(): Promise<TeamMember[]> {
       `)
       .in('user_id', profileIds)
 
-    // Crear un mapa de skills por usuario
+    // Create a map of skills per user
     const skillsMap: Record<string, string[]> = {}
     
     if (!userSkillsError && userSkills && userSkills.length > 0) {
@@ -59,13 +59,13 @@ export async function getTeamMembers(): Promise<TeamMember[]> {
       })
     }
 
-    // Obtener estadísticas de oportunidades para cada miembro
+    // Get opportunity statistics for each member
     const { data: opportunities, error: oppError } = await supabase
       .from("Opportunities")
       .select('id, assigned_user_id, status')
       .in('assigned_user_id', profileIds)
 
-    // Calcular oportunidades activas y completadas por usuario
+    // Calculate active and completed opportunities per user
     const activeOppsMap: Record<string, number> = {}
     const completedOppsMap: Record<string, number> = {}
 
@@ -81,7 +81,7 @@ export async function getTeamMembers(): Promise<TeamMember[]> {
       })
     }
 
-    // Transformar los datos al formato esperado por el frontend
+    // Transform data to the format expected by the frontend
     const teamMembers: TeamMember[] = profiles.map((profile: any) => ({
       id: profile.id,
       name: profile.full_name || 'Unknown',
@@ -100,7 +100,7 @@ export async function getTeamMembers(): Promise<TeamMember[]> {
 }
 
 /**
- * Obtiene el conteo total de miembros del equipo
+ * Gets the total count of team members
  */
 export async function getTeamMembersCount(): Promise<number> {
   try {
@@ -109,7 +109,7 @@ export async function getTeamMembersCount(): Promise<number> {
       .select('*', { count: 'exact', head: true })
 
     if (error) {
-      console.error('Error completo:', error)
+      console.error('Error fetching count:', error)
       throw error
     }
 
@@ -121,9 +121,9 @@ export async function getTeamMembersCount(): Promise<number> {
 }
 
 /**
- * Crea un nuevo miembro del equipo
- * @param memberData - Datos del miembro a crear
- * @returns El miembro creado
+ * Creates a new team member
+ * @param memberData - Member data to create
+ * @returns The created member
  */
 export async function createTeamMember(memberData: {
   name: string
@@ -132,7 +132,7 @@ export async function createTeamMember(memberData: {
   skillIds: string[]
 }): Promise<TeamMember> {
   try {
-    // Llamar a la API route de Next.js
+    // Call the Next.js API route
     const response = await fetch('/api/members', {
       method: 'POST',
       headers: {
@@ -148,12 +148,12 @@ export async function createTeamMember(memberData: {
 
     if (!response.ok) {
       const errorData = await response.json()
-      throw new Error(errorData.error || 'Error al crear el miembro')
+      throw new Error(errorData.error || 'Error creating member')
     }
 
     const result = await response.json()
 
-    // Obtener las skills del miembro recién creado
+    // Get skills for the newly created member
     const { data: userSkills, error: skillsError } = await supabase
       .from('user_skills')
       .select(`
@@ -173,7 +173,7 @@ export async function createTeamMember(memberData: {
       })
     }
 
-    // Retornar en el formato esperado por el frontend
+    // Return in the format expected by the frontend
     return {
       id: result.id,
       name: result.full_name,
