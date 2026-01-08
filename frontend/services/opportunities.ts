@@ -31,7 +31,7 @@ export interface Opportunity {
   requiredSkillId: string | null // ID of the required skill
   assignee: string
   assigneeId: string | null // ID of the assigned user
-  status: "new" | "assigned" | "done"
+  status: "new" | "assigned" | "done" | "cancelled" | "archived"
   urgency: "high" | "medium" | "low"
   aiSummary: string
   createdDate: string
@@ -188,7 +188,7 @@ export async function getOpportunities(): Promise<Opportunity[]> {
       const assignedUser = opp.Profiles || opp.assigned_user || null
       
       // Determine initial status
-      let status = (opp.status?.toLowerCase() || 'new') as "new" | "assigned" | "done"
+      let status = (opp.status?.toLowerCase() || 'new') as "new" | "assigned" | "done" | "cancelled" | "archived"
       
       // Cleanup logic: If there's an assigned member but status is 'new', change to 'assigned'
       // This fixes inconsistencies in the DB data
@@ -227,12 +227,12 @@ export async function getOpportunities(): Promise<Opportunity[]> {
 /**
  * Updates the status of an opportunity in the database
  * @param id - Opportunity ID
- * @param newStatus - New status: "new", "assigned", or "done"
+ * @param newStatus - New status: "new", "assigned", "done", "cancelled", or "archived"
  * @returns The updated opportunity or null if there's an error
  */
 export async function updateOpportunityStatus(
   id: string,
-  newStatus: "new" | "assigned" | "done"
+  newStatus: "new" | "assigned" | "done" | "cancelled" | "archived"
 ): Promise<Opportunity | null> {
   try {
     const { data, error } = await supabase
@@ -315,7 +315,7 @@ export async function updateOpportunityStatus(
       requiredSkillId: data.required_skill_id || null,
       assignee: assignedUser?.full_name || '',
       assigneeId: data.assigned_user_id || null,
-      status: (data.status?.toLowerCase() || 'new') as "new" | "assigned" | "done",
+      status: (data.status?.toLowerCase() || 'new') as "new" | "assigned" | "done" | "cancelled" | "archived",
       urgency: (data.urgency?.toLowerCase() || 'medium') as "high" | "medium" | "low",
       aiSummary: data.ai_summary || '',
       createdDate: new Date(data.created_at).toLocaleDateString('en-US', {
@@ -464,7 +464,7 @@ export async function updateOpportunityAssignment(
       requiredSkillId: data.required_skill_id || null,
       assignee: assignedUser?.full_name || '',
       assigneeId: data.assigned_user_id || null,
-      status: (data.status?.toLowerCase() || 'new') as "new" | "assigned" | "done",
+      status: (data.status?.toLowerCase() || 'new') as "new" | "assigned" | "done" | "cancelled" | "archived",
       urgency: (data.urgency?.toLowerCase() || 'medium') as "high" | "medium" | "low",
       aiSummary: data.ai_summary || '',
       createdDate: new Date(data.created_at).toLocaleDateString('en-US', {
@@ -609,7 +609,7 @@ export async function updateOpportunityDetails(
       requiredSkillId: data.required_skill_id || null,
       assignee: assignedUser?.full_name || '',
       assigneeId: data.assigned_user_id || null,
-      status: (data.status?.toLowerCase() || 'new') as "new" | "assigned" | "done",
+      status: (data.status?.toLowerCase() || 'new') as "new" | "assigned" | "done" | "cancelled" | "archived",
       urgency: (data.urgency?.toLowerCase() || 'medium') as "high" | "medium" | "low",
       aiSummary: data.ai_summary || '',
       createdDate: new Date(data.created_at).toLocaleDateString('en-US', {
@@ -719,7 +719,7 @@ export async function createOpportunity(
       requiredSkillId: data.required_skill_id || null,
       assignee: assignedUser?.full_name || '',
       assigneeId: data.assigned_user_id || null,
-      status: (data.status?.toLowerCase() || 'new') as "new" | "assigned" | "done",
+      status: (data.status?.toLowerCase() || 'new') as "new" | "assigned" | "done" | "cancelled" | "archived",
       urgency: (data.urgency?.toLowerCase() || 'medium') as "high" | "medium" | "low",
       aiSummary: data.ai_summary || '',
       createdDate: new Date(data.created_at).toLocaleDateString('en-US', {
@@ -753,6 +753,84 @@ export async function getActiveOpportunitiesCount(): Promise<number> {
   } catch (error) {
     console.error('Error in getActiveOpportunitiesCount:', error)
     throw error
+  }
+}
+
+/**
+ * Gets the count of opportunities with 'new' status (pending action)
+ */
+export async function getPendingActionCount(): Promise<number> {
+  try {
+    const { count, error } = await supabase
+      .from("Opportunities")
+      .select('*', { count: 'exact', head: true })
+      .eq('status', 'new')
+
+    if (error) {
+      console.error('Error fetching pending action count:', error)
+      throw error
+    }
+
+    return count || 0
+  } catch (error) {
+    console.error('Error in getPendingActionCount:', error)
+    throw error
+  }
+}
+
+/**
+ * Gets the most frequent skill in open opportunities (status 'new' or 'assigned')
+ */
+export async function getTopNeededSkill(): Promise<string> {
+  try {
+    // Get all open opportunities (new or assigned)
+    const { data: opportunities, error } = await supabase
+      .from("Opportunities")
+      .select('required_skill_id')
+      .in('status', ['new', 'assigned'])
+
+    if (error) {
+      console.error('Error fetching opportunities for top skill:', error)
+      throw error
+    }
+
+    if (!opportunities || opportunities.length === 0) {
+      return 'None'
+    }
+
+    // Count occurrences of each skill_id
+    const skillCounts: Record<string, number> = {}
+    opportunities.forEach((opp) => {
+      if (opp.required_skill_id) {
+        skillCounts[opp.required_skill_id] = (skillCounts[opp.required_skill_id] || 0) + 1
+      }
+    })
+
+    if (Object.keys(skillCounts).length === 0) {
+      return 'None'
+    }
+
+    // Find the most frequent skill_id
+    const topSkillId = Object.entries(skillCounts).reduce((a, b) => 
+      skillCounts[a[0]] > skillCounts[b[0]] ? a : b
+    )[0]
+
+    // Get the skill name
+    const { data: skill, error: skillError } = await supabase
+      .from('Skills')
+      .select('name')
+      .eq('id', topSkillId)
+      .single()
+
+    if (skillError || !skill) {
+      console.error('Error fetching skill name:', skillError)
+      return 'Unknown'
+    }
+
+    return skill.name
+  } catch (error) {
+    console.error('Error in getTopNeededSkill:', error)
+    return 'Error'
   }
 }
 

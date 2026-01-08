@@ -121,6 +121,56 @@ export async function getTeamMembersCount(): Promise<number> {
 }
 
 /**
+ * Calculates the percentage of team members without assigned opportunities
+ */
+export async function getTeamAvailabilityPercentage(): Promise<number> {
+  try {
+    // Get all team members
+    const { data: allMembers, error: membersError } = await supabase
+      .from("Profiles")
+      .select('id')
+
+    if (membersError) {
+      console.error('Error fetching team members:', membersError)
+      throw membersError
+    }
+
+    if (!allMembers || allMembers.length === 0) {
+      return 100 // If no members, consider 100% available
+    }
+
+    // Get all members with assigned opportunities (status 'new' or 'assigned')
+    const { data: opportunities, error: oppError } = await supabase
+      .from("Opportunities")
+      .select('assigned_user_id')
+      .in('status', ['new', 'assigned'])
+      .not('assigned_user_id', 'is', null)
+
+    if (oppError) {
+      console.error('Error fetching opportunities:', oppError)
+      throw oppError
+    }
+
+    // Get unique member IDs with assigned opportunities
+    const assignedMemberIds = new Set(
+      (opportunities || [])
+        .map(opp => opp.assigned_user_id)
+        .filter((id): id is string => id !== null)
+    )
+
+    // Calculate percentage
+    const totalMembers = allMembers.length
+    const availableMembers = totalMembers - assignedMemberIds.size
+    const percentage = totalMembers > 0 ? Math.round((availableMembers / totalMembers) * 100) : 100
+
+    return percentage
+  } catch (error) {
+    console.error('Error in getTeamAvailabilityPercentage:', error)
+    return 0
+  }
+}
+
+/**
  * Creates a new team member
  * @param memberData - Member data to create
  * @returns The created member

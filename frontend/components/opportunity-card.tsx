@@ -11,7 +11,7 @@ interface Opportunity {
   summary: string
   requiredSkill: string | string[]
   assignee: string
-  status: "new" | "assigned" | "done"
+  status: "new" | "assigned" | "done" | "cancelled" | "archived"
   urgency: "high" | "medium" | "low"
   aiSummary: string
   isProcessing?: boolean

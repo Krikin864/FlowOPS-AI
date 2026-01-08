@@ -11,7 +11,7 @@ interface Opportunity {
   summary: string
   requiredSkill: string | string[]
   assignee: string
-  status: "new" | "assigned" | "done"
+  status: "new" | "assigned" | "done" | "cancelled" | "archived"
   urgency: "high" | "medium" | "low"
   aiSummary: string
   isProcessing?: boolean
@@ -25,6 +25,8 @@ interface KanbanColumnProps {
   onCardClick?: (opportunity: Opportunity) => void
   onAssignClick?: (opportunity: Opportunity) => void
   onMoveToComplete?: (opportunityId: string) => void
+  onArchive?: (opportunityId: string) => void
+  onCancel?: (opportunityId: string) => void
   updatingIds?: Set<string>
 }
 
@@ -35,6 +37,8 @@ export default function KanbanColumn({
   onCardClick,
   onAssignClick,
   onMoveToComplete,
+  onArchive,
+  onCancel,
   updatingIds = new Set(),
 }: KanbanColumnProps) {
   // Colores por defecto para las columnas
@@ -78,27 +82,71 @@ export default function KanbanColumn({
                 </div>
                 <div className="flex flex-col gap-1 pt-1">
                   {opp.status === "new" && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => onAssignClick?.(opp)}
-                      className="bg-transparent text-xs"
-                      disabled={isUpdating}
-                    >
-                      Assign
-                    </Button>
+                    <>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => onAssignClick?.(opp)}
+                        className="bg-transparent text-xs"
+                        disabled={isUpdating}
+                      >
+                        Assign
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => onCancel?.(opp.id)}
+                        className="bg-transparent text-xs text-muted-foreground hover:text-destructive"
+                        disabled={isUpdating}
+                      >
+                        Cancel
+                      </Button>
+                    </>
                   )}
                   {opp.status === "assigned" && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => onMoveToComplete?.(opp.id)}
-                      className="bg-transparent gap-1"
-                      disabled={isUpdating}
-                    >
-                      <ArrowRight className="h-3 w-3" />
-                      Done
-                    </Button>
+                    <>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => onMoveToComplete?.(opp.id)}
+                        className="bg-transparent gap-1"
+                        disabled={isUpdating}
+                      >
+                        <ArrowRight className="h-3 w-3" />
+                        Done
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => onCancel?.(opp.id)}
+                        className="bg-transparent text-xs text-muted-foreground hover:text-destructive"
+                        disabled={isUpdating}
+                      >
+                        Cancel
+                      </Button>
+                    </>
+                  )}
+                  {opp.status === "done" && (
+                    <>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => onArchive?.(opp.id)}
+                        className="bg-transparent text-xs"
+                        disabled={isUpdating}
+                      >
+                        Archive
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => onCancel?.(opp.id)}
+                        className="bg-transparent text-xs text-muted-foreground hover:text-destructive"
+                        disabled={isUpdating}
+                      >
+                        Cancel
+                      </Button>
+                    </>
                   )}
                 </div>
               </div>

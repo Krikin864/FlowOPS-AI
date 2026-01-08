@@ -74,6 +74,11 @@ export default function KanbanBoard({ filters }: { filters?: any }) {
   }, [])
 
   const filteredOpportunities = opportunities.filter((opp) => {
+    // Only show opportunities with status: new, assigned, or done (exclude archived and cancelled)
+    if (!['new', 'assigned', 'done'].includes(opp.status)) {
+      return false
+    }
+
     // Filter by urgency: if filter is "all" or empty, show all; otherwise, filter by specific urgency
     if (filters?.urgency && filters.urgency !== "" && filters.urgency !== "all") {
       if (opp.urgency !== filters.urgency.toLowerCase()) return false
@@ -98,7 +103,7 @@ export default function KanbanBoard({ filters }: { filters?: any }) {
   ]
 
   // Centralized function to update the status of an opportunity
-  const handleUpdateStatus = async (id: string, newStatus: "new" | "assigned" | "done") => {
+  const handleUpdateStatus = async (id: string, newStatus: "new" | "assigned" | "done" | "cancelled" | "archived") => {
     // Optimistic update: update UI immediately
     const previousOpportunities = [...opportunities]
     setOpportunities((prev) =>
@@ -196,6 +201,16 @@ export default function KanbanBoard({ filters }: { filters?: any }) {
     await handleUpdateStatus(opportunityId, "done")
   }
 
+  const handleArchive = async (opportunityId: string) => {
+    await handleUpdateStatus(opportunityId, "archived")
+    toast.success('Opportunity archived')
+  }
+
+  const handleCancel = async (opportunityId: string) => {
+    await handleUpdateStatus(opportunityId, "cancelled")
+    toast.success('Opportunity cancelled')
+  }
+
   const handleSaveEdits = (updatedOpportunity: Opportunity) => {
     if (selectedOpportunity) {
       // Update with real data from DB (already persisted)
@@ -250,6 +265,8 @@ export default function KanbanBoard({ filters }: { filters?: any }) {
             onCardClick={setSelectedOpportunity}
             onAssignClick={handleAssignClick}
             onMoveToComplete={handleMoveToComplete}
+            onArchive={handleArchive}
+            onCancel={handleCancel}
             updatingIds={updatingIds}
           />
         ))}

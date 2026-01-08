@@ -69,6 +69,10 @@ export default function OpportunitiesPage() {
         return "bg-purple-100 text-purple-800"
       case "done":
         return "bg-green-100 text-green-800"
+      case "cancelled":
+        return "bg-red-100 text-red-800"
+      case "archived":
+        return "bg-gray-100 text-gray-800"
       default:
         return ""
     }
@@ -121,8 +125,8 @@ export default function OpportunitiesPage() {
           <div className="p-6 space-y-6">
             <div className="flex items-center justify-between">
               <div>
-                <h1 className="text-3xl font-bold text-foreground mb-2">Opportunities</h1>
-                <p className="text-muted-foreground">Manage all your leads and opportunities</p>
+                <h1 className="text-3xl font-bold text-foreground mb-2">Opportunities History</h1>
+                <p className="text-muted-foreground">Complete history of all opportunities including archived and cancelled</p>
               </div>
               <Button className="gap-2" onClick={() => setShowNewOpportunityModal(true)}>
                 <Plus className="h-4 w-4" />
@@ -188,6 +192,7 @@ export default function OpportunitiesPage() {
                         <tr>
                           <th className="px-6 py-3 text-left font-semibold text-foreground">Client</th>
                           <th className="px-6 py-3 text-left font-semibold text-foreground">Company</th>
+                          <th className="px-6 py-3 text-left font-semibold text-foreground">AI Summary</th>
                           <th className="px-6 py-3 text-left font-semibold text-foreground">Skill Required</th>
                           <th className="px-6 py-3 text-left font-semibold text-foreground">Urgency</th>
                           <th className="px-6 py-3 text-left font-semibold text-foreground">Status</th>
@@ -199,6 +204,7 @@ export default function OpportunitiesPage() {
                           <tr key={i}>
                             <td className="px-6 py-4"><Skeleton className="h-4 w-24" /></td>
                             <td className="px-6 py-4"><Skeleton className="h-4 w-32" /></td>
+                            <td className="px-6 py-4"><Skeleton className="h-4 w-48" /></td>
                             <td className="px-6 py-4"><Skeleton className="h-4 w-20" /></td>
                             <td className="px-6 py-4"><Skeleton className="h-6 w-16 rounded-full" /></td>
                             <td className="px-6 py-4"><Skeleton className="h-6 w-16 rounded-full" /></td>
@@ -243,6 +249,7 @@ export default function OpportunitiesPage() {
                     <tr>
                       <th className="px-6 py-3 text-left font-semibold text-foreground">Client</th>
                       <th className="px-6 py-3 text-left font-semibold text-foreground">Company</th>
+                      <th className="px-6 py-3 text-left font-semibold text-foreground">AI Summary</th>
                       <th className="px-6 py-3 text-left font-semibold text-foreground">Skill Required</th>
                       <th className="px-6 py-3 text-left font-semibold text-foreground">Urgency</th>
                       <th className="px-6 py-3 text-left font-semibold text-foreground">Status</th>
@@ -256,6 +263,9 @@ export default function OpportunitiesPage() {
                         <tr key={opp.id} className="hover:bg-muted transition-colors">
                           <td className="px-6 py-4 font-medium text-foreground">{opp.clientName}</td>
                           <td className="px-6 py-4 text-card-foreground">{opp.company}</td>
+                          <td className="px-6 py-4 text-sm text-muted-foreground max-w-xs">
+                            <p className="line-clamp-2">{opp.aiSummary || opp.summary || 'No summary available'}</p>
+                          </td>
                           <td className="px-6 py-4">
                             <div className="flex flex-wrap gap-1.5">
                               {skills.length > 0 ? (
