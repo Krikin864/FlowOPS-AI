@@ -140,16 +140,25 @@ export default function KanbanBoard({ filters }: { filters?: any }) {
   const handleAssignTeamMember = async (memberId: string) => {
     if (!opportunityToAssign) return
 
-    // Actualización optimista: actualizar UI inmediatamente
+    // Optimistic update: update UI immediately with expected changes
     const previousOpportunities = [...opportunities]
     setUpdatingIds((prev) => new Set(prev).add(opportunityToAssign.id))
 
+    // Optimistically update the opportunity status to 'assigned' immediately
+    setOpportunities((prev) =>
+      prev.map((opp) => 
+        opp.id === opportunityToAssign.id 
+          ? { ...opp, status: 'assigned' as const, assignee: 'Loading...' }
+          : opp
+      )
+    )
+
     try {
-      // Actualizar assigned_user_id y status en Supabase
+      // Update assigned_user_id and status in Supabase
       const updatedOpportunity = await updateOpportunityAssignment(opportunityToAssign.id, memberId)
       
       if (updatedOpportunity) {
-        // Actualizar con los datos reales de la DB
+        // Update with actual DB data
         setOpportunities((prev) =>
           prev.map((opp) => (opp.id === opportunityToAssign.id ? updatedOpportunity : opp))
         )
@@ -160,7 +169,7 @@ export default function KanbanBoard({ filters }: { filters?: any }) {
         throw new Error('Failed to update opportunity assignment')
       }
     } catch (error: any) {
-      // Revertir cambio en caso de error
+      // Revert change in case of error
       setOpportunities(previousOpportunities)
       const errorMessage = error?.message || error?.details || 'Unknown error occurred'
       toast.error(`Failed to assign opportunity: ${errorMessage}`)

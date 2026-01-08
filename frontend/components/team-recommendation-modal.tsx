@@ -58,16 +58,22 @@ export default function TeamRecommendationModal({
   // Normalize requiredSkill to array for comparison
   const requiredSkills = Array.isArray(opportunity.requiredSkill) 
     ? opportunity.requiredSkill 
-    : [opportunity.requiredSkill]
+    : [opportunity.requiredSkill].filter(skill => skill && skill !== '')
 
   // Filter members who have at least one of the required skills
+  // When AI extracts skills, only show members with matching skills
   const matchingMembers = teamMembers.filter((member) =>
-    requiredSkills.some(skill => member.skills.includes(skill))
+    requiredSkills.length > 0 && requiredSkills.some(skill => member.skills.includes(skill))
   )
   
-  const allOtherMembers = teamMembers.filter((member) =>
-    !requiredSkills.some(skill => member.skills.includes(skill))
-  )
+  // Only show alternative members if no skills were extracted by AI
+  // If skills were extracted, only show matching members
+  const shouldShowAlternatives = requiredSkills.length === 0 || requiredSkills.every(skill => !skill || skill === '')
+  const allOtherMembers = shouldShowAlternatives 
+    ? teamMembers.filter((member) =>
+        !requiredSkills.some(skill => member.skills.includes(skill))
+      )
+    : []
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -85,12 +91,18 @@ export default function TeamRecommendationModal({
             <div className="space-y-2">
               <p className="text-sm text-muted-foreground">Required Skill{requiredSkills.length > 1 ? 's' : ''}</p>
               <div className="flex items-center gap-2 flex-wrap">
-                {requiredSkills.map((skill, idx) => (
-                  <Badge key={idx} className="text-base">{skill}</Badge>
-                ))}
-                <span className="text-sm text-muted-foreground">
-                  {matchingMembers.length} team member{matchingMembers.length !== 1 ? "s" : ""} with {requiredSkills.length > 1 ? 'these skills' : 'this skill'}
-                </span>
+                {requiredSkills.length > 0 ? (
+                  <>
+                    {requiredSkills.map((skill, idx) => (
+                      <Badge key={idx} className="text-base">{skill}</Badge>
+                    ))}
+                    <span className="text-sm text-muted-foreground">
+                      {matchingMembers.length} team member{matchingMembers.length !== 1 ? "s" : ""} with {requiredSkills.length > 1 ? 'these skills' : 'this skill'}
+                    </span>
+                  </>
+                ) : (
+                  <span className="text-sm text-muted-foreground italic">No specific skills required</span>
+                )}
               </div>
             </div>
           </div>
@@ -111,7 +123,59 @@ export default function TeamRecommendationModal({
           ) : (
             <>
               {/* Recommended Team Members (Matching Skills) */}
-              {matchingMembers.length > 0 && (
+              {requiredSkills.length > 0 && matchingMembers.length === 0 ? (
+                <div className="space-y-3">
+                  <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-3 space-y-2">
+                    <div className="flex items-center gap-2">
+                      <AlertCircle className="h-4 w-4 text-yellow-600" />
+                      <p className="text-sm font-semibold text-foreground">No exact matches found</p>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      No team members have the required skill{requiredSkills.length > 1 ? 's' : ''}: {requiredSkills.join(', ')}. Showing all available members.
+                    </p>
+                  </div>
+                  <div className="space-y-2">
+                    {teamMembers.map((member) => (
+                      <button
+                        key={member.id}
+                        onClick={() => {
+                          onAssignTeamMember(member.id)
+                          onOpenChange(false)
+                        }}
+                        className="w-full p-4 rounded-lg border border-border/50 bg-card hover:border-primary hover:bg-secondary/30 transition-all text-left opacity-75 hover:opacity-100 group"
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1">
+                            <p className="font-semibold text-foreground group-hover:text-primary">{member.name}</p>
+                            {member.email && (
+                              <p className="text-xs text-muted-foreground mt-1">{member.email}</p>
+                            )}
+                            <div className="flex gap-2 mt-2 flex-wrap">
+                              {member.skills.length > 0 ? (
+                                member.skills.map((skill) => (
+                                  <Badge 
+                                    key={skill} 
+                                    variant="secondary" 
+                                    className="text-xs opacity-60"
+                                  >
+                                    {skill}
+                                  </Badge>
+                                ))
+                              ) : (
+                                <span className="text-xs text-muted-foreground italic">No skills assigned</span>
+                              )}
+                            </div>
+                          </div>
+                          <div className="text-right ml-4">
+                            <p className="text-xs text-muted-foreground">Current</p>
+                            <p className="font-semibold text-foreground">{member.activeOpportunities} tasks</p>
+                          </div>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ) : matchingMembers.length > 0 && (
                 <div className="space-y-3">
                   <h3 className="font-semibold text-foreground flex items-center gap-2">
                     <CheckCircle2 className="h-4 w-4 text-green-500" />
@@ -160,8 +224,8 @@ export default function TeamRecommendationModal({
                 </div>
               )}
 
-              {/* Alternative Team Members */}
-              {allOtherMembers.length > 0 && (
+              {/* Alternative Team Members - Only show if there are matching members and alternatives exist */}
+              {matchingMembers.length > 0 && allOtherMembers.length > 0 && (
                 <div className="space-y-3">
                   <h3 className="font-semibold text-foreground flex items-center gap-2">
                     <AlertCircle className="h-4 w-4 text-yellow-500" />
@@ -189,7 +253,11 @@ export default function TeamRecommendationModal({
                             <div className="flex gap-2 mt-2 flex-wrap">
                               {member.skills.length > 0 ? (
                                 member.skills.map((skill) => (
-                                  <Badge key={skill} variant="secondary" className="text-xs">
+                                  <Badge 
+                                    key={skill} 
+                                    variant="secondary" 
+                                    className="text-xs opacity-60"
+                                  >
                                     {skill}
                                   </Badge>
                                 ))

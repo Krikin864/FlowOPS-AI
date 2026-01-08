@@ -63,7 +63,13 @@ export default function OpportunityCard({ opportunity, onClick, isUpdating = fal
         <div className="bg-secondary/40 p-2 rounded space-y-1 border border-border/30">
           <div className="flex items-start gap-1.5">
             <Sparkles className="h-3 w-3 text-primary flex-shrink-0 mt-0.5" />
-            <p className="text-xs text-foreground/70 leading-snug line-clamp-2">{opportunity.summary}</p>
+            <p className="text-xs text-foreground/70 leading-snug line-clamp-2">
+              {opportunity.aiSummary && opportunity.aiSummary.trim() 
+                ? opportunity.aiSummary 
+                : opportunity.summary && opportunity.summary.trim()
+                  ? opportunity.summary
+                  : 'Processing summary...'}
+            </p>
           </div>
         </div>
 
