@@ -66,14 +66,12 @@ export default function DashboardContent() {
 
   return (
     <div className="space-y-4">
-      <div className="border-b border-border bg-card px-6 py-4">
-        <div className="flex items-center justify-between gap-4">
-          <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
-          <Button onClick={() => setShowNewOpportunity(true)} className="gap-2" size="sm">
-            <Plus className="h-4 w-4" />
-            New Opportunity
-          </Button>
-        </div>
+      <div className="h-16 border-b border-border bg-card px-6 flex items-center justify-between gap-4">
+        <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
+        <Button onClick={() => setShowNewOpportunity(true)} className="gap-2" size="sm">
+          <Plus className="h-4 w-4" />
+          New Opportunity
+        </Button>
       </div>
 
       <div className="p-4 space-y-4">

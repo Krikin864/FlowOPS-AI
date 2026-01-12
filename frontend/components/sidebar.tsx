@@ -23,7 +23,7 @@ export default function Sidebar({ open }: SidebarProps) {
       className={`${open ? "w-64" : "w-20"}
       border-r border-border bg-sidebar transition-all duration-300 flex flex-col`}
     >
-      <div className="p-6 border-b border-sidebar-border">
+      <div className="h-16 border-b border-border bg-sidebar flex items-center px-6">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded bg-sidebar-primary flex items-center justify-center text-sidebar-primary-foreground font-bold">
             L

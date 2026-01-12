@@ -203,26 +203,24 @@ export default function OpportunitiesPage() {
       <Sidebar open={sidebarOpen} />
       <div className="flex flex-col flex-1">
         <main className="flex-1 overflow-auto">
-          <div className="border-b border-border bg-card px-6 py-4">
-            <div className="flex items-center justify-between gap-4">
-              <h1 className="text-2xl font-bold text-foreground">Opportunities History</h1>
-              <div className="flex items-center gap-4 flex-1 max-w-md">
-                <div className="flex items-center gap-2 flex-1 relative">
-                  <Search className="absolute left-3 h-4 w-4 text-muted-foreground pointer-events-none" />
-                  <Input
-                    type="search"
-                    placeholder="Search opportunities..."
-                    className="pl-10 border-0 bg-secondary placeholder:text-muted-foreground"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                  />
-                </div>
+          <div className="h-16 border-b border-border bg-card px-6 flex items-center justify-between gap-4">
+            <h1 className="text-2xl font-bold text-foreground">Opportunities History</h1>
+            <div className="flex items-center gap-4 flex-1 max-w-md">
+              <div className="flex items-center gap-2 flex-1 relative">
+                <Search className="absolute left-3 h-4 w-4 text-muted-foreground pointer-events-none" />
+                <Input
+                  type="search"
+                  placeholder="Search opportunities..."
+                  className="pl-10 border-0 bg-secondary placeholder:text-muted-foreground"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
               </div>
-              <Button className="gap-2" size="sm" onClick={() => setShowNewOpportunityModal(true)}>
-                <Plus className="h-4 w-4" />
-                New Opportunity
-              </Button>
             </div>
+            <Button className="gap-2" size="sm" onClick={() => setShowNewOpportunityModal(true)}>
+              <Plus className="h-4 w-4" />
+              New Opportunity
+            </Button>
           </div>
 
           <div className="p-6 space-y-6">
