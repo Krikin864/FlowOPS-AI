@@ -4,9 +4,8 @@ import KanbanBoard from "@/components/kanban-board"
 import StatsCard from "@/components/stats-card"
 import FilterBar from "@/components/filter-bar"
 import NewOpportunityModal from "@/components/new-opportunity-modal"
-import { Clock, Code, Users, Plus, Search } from "lucide-react"
+import { Clock, Code, Users, Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { getPendingActionCount, getTopNeededSkill } from "@/services/opportunities"
 import { getTeamAvailabilityPercentage } from "@/services/members"
 
@@ -70,16 +69,6 @@ export default function DashboardContent() {
       <div className="border-b border-border bg-card px-6 py-4">
         <div className="flex items-center justify-between gap-4">
           <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
-          <div className="flex items-center gap-4 flex-1 max-w-md">
-            <div className="flex items-center gap-2 flex-1 relative">
-              <Search className="absolute left-3 h-4 w-4 text-muted-foreground pointer-events-none" />
-              <Input
-                type="search"
-                placeholder="Search opportunities..."
-                className="pl-10 border-0 bg-secondary placeholder:text-muted-foreground"
-              />
-            </div>
-          </div>
           <Button onClick={() => setShowNewOpportunity(true)} className="gap-2" size="sm">
             <Plus className="h-4 w-4" />
             New Opportunity

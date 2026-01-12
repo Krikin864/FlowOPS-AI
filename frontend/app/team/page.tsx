@@ -19,6 +19,7 @@ export default function TeamPage() {
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [availableSkills, setAvailableSkills] = useState<Skill[]>([])
+  const [searchTerm, setSearchTerm] = useState("")
 
   // Load skills from the database when the page loads
   useEffect(() => {
@@ -52,6 +53,22 @@ export default function TeamPage() {
 
     loadTeamMembers()
   }, [])
+
+  // Filter team members based on search term (Name, Email, or Skills)
+  const filteredTeamMembers = teamMembers.filter((member) => {
+    if (searchTerm.trim() === "") return true
+    
+    const searchLower = searchTerm.toLowerCase()
+    const matchesName = member.name.toLowerCase().includes(searchLower)
+    const matchesEmail = member.email.toLowerCase().includes(searchLower)
+    
+    // Check if search matches any skill
+    const matchesSkill = member.skills.some(skill => 
+      skill && skill.toLowerCase().includes(searchLower)
+    )
+    
+    return matchesName || matchesEmail || matchesSkill
+  })
 
   // Function to handle creating a new member
   const handleCreateMember = async (formData: MemberFormData) => {
@@ -90,6 +107,8 @@ export default function TeamPage() {
                     type="search"
                     placeholder="Search team members..."
                     className="pl-10 border-0 bg-secondary placeholder:text-muted-foreground"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
                   />
                 </div>
               </div>
@@ -125,23 +144,29 @@ export default function TeamPage() {
                   </div>
                 ))}
               </div>
-            ) : teamMembers.length === 0 ? (
+            ) : filteredTeamMembers.length === 0 ? (
               <div className="bg-card border border-border rounded-lg p-12 text-center">
                 <div className="max-w-md mx-auto space-y-4">
                   <div className="text-6xl mb-4">👥</div>
-                  <h3 className="text-xl font-semibold text-foreground">No team members yet</h3>
+                  <h3 className="text-xl font-semibold text-foreground">
+                    {teamMembers.length === 0 ? "No team members yet" : "No matching team members"}
+                  </h3>
                   <p className="text-muted-foreground">
-                    Get started by adding your first team member to the system.
+                    {teamMembers.length === 0 
+                      ? "Get started by adding your first team member to the system."
+                      : "Try adjusting your search criteria."}
                   </p>
-                  <Button className="gap-2 mt-4" onClick={() => setShowAddModal(true)}>
-                    <Plus className="h-4 w-4" />
-                    Add First Team Member
-                  </Button>
+                  {teamMembers.length === 0 && (
+                    <Button className="gap-2 mt-4" onClick={() => setShowAddModal(true)}>
+                      <Plus className="h-4 w-4" />
+                      Add First Team Member
+                    </Button>
+                  )}
                 </div>
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {teamMembers.map((member) => (
+                {filteredTeamMembers.map((member) => (
                   <div
                     key={member.id}
                     className="bg-card border border-border rounded-lg p-4 hover:shadow-md transition-shadow space-y-3"

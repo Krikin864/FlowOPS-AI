@@ -114,13 +114,23 @@ export default function OpportunitiesPage() {
   }
 
   const filteredAndSortedOpportunities = opportunities.filter((opp) => {
-    // Search filter
-    const matchesSearch =
-      opp.clientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      opp.company.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (opp.aiSummary && opp.aiSummary.toLowerCase().includes(searchTerm.toLowerCase()))
-
-    if (!matchesSearch) return false
+    // Omni-search filter: matches Client Name, Company, Team Member Name, or Skill Required
+    if (searchTerm.trim() !== "") {
+      const searchLower = searchTerm.toLowerCase()
+      const matchesClient = opp.clientName.toLowerCase().includes(searchLower)
+      const matchesCompany = opp.company.toLowerCase().includes(searchLower)
+      const matchesTeamMember = opp.assignee.toLowerCase().includes(searchLower)
+      
+      // Check if search matches any skill
+      const skills = Array.isArray(opp.requiredSkill) ? opp.requiredSkill : [opp.requiredSkill]
+      const matchesSkill = skills.some(skill => 
+        skill && skill.toLowerCase().includes(searchLower)
+      )
+      
+      const matchesSearch = matchesClient || matchesCompany || matchesTeamMember || matchesSkill
+      
+      if (!matchesSearch) return false
+    }
 
     // Status filter - filter by Archived, Cancelled, or Done
     if (filters.status && filters.status !== "" && filters.status !== "all") {
