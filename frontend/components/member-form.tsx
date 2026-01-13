@@ -72,6 +72,19 @@ export default function MemberForm({
     }
 
     loadSkills()
+
+    // Listen for skills updates
+    const handleSkillsUpdated = () => {
+      if (open) {
+        loadSkills()
+      }
+    }
+
+    window.addEventListener('skillsUpdated', handleSkillsUpdated)
+
+    return () => {
+      window.removeEventListener('skillsUpdated', handleSkillsUpdated)
+    }
   }, [open, availableSkills])
 
   // Load initial data when in edit mode

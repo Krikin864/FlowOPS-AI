@@ -10,8 +10,10 @@ import { Badge } from "@/components/ui/badge"
 import { getTeamMembers, createTeamMember, updateTeamMember, type TeamMember } from "@/services/members"
 import { getSkills, type Skill } from "@/services/skills"
 import MemberForm, { type MemberFormData } from "@/components/member-form"
+import SkillsManagementModal from "@/components/skills-management-modal"
 import { toast } from "sonner"
 import { useSidebarState } from "@/hooks/use-sidebar-state"
+import { Settings } from "lucide-react"
 
 export default function TeamPage() {
   const { isOpen: sidebarOpen } = useSidebarState(true)
@@ -21,6 +23,7 @@ export default function TeamPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [availableSkills, setAvailableSkills] = useState<Skill[]>([])
   const [searchTerm, setSearchTerm] = useState("")
+  const [showSkillsModal, setShowSkillsModal] = useState(false)
 
   // Load skills from the database when the page loads
   useEffect(() => {
@@ -129,6 +132,16 @@ export default function TeamPage() {
     setSelectedMember(null)
   }
 
+  // Function to refresh skills list
+  const handleSkillsUpdated = async () => {
+    try {
+      const refreshedSkills = await getSkills()
+      setAvailableSkills(refreshedSkills)
+    } catch (error) {
+      console.error('Error refreshing skills:', error)
+    }
+  }
+
   return (
     <div className="flex h-screen bg-background text-foreground">
       <Sidebar open={sidebarOpen} />
@@ -148,10 +161,21 @@ export default function TeamPage() {
                 />
               </div>
             </div>
-            <Button onClick={() => setShowAddModal(true)} className="gap-2" size="sm">
-              <Plus className="h-4 w-4" />
-              Add Team Member
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button 
+                onClick={() => setShowSkillsModal(true)} 
+                variant="outline"
+                className="gap-2" 
+                size="sm"
+              >
+                <Settings className="h-4 w-4" />
+                Manage Skills
+              </Button>
+              <Button onClick={() => setShowAddModal(true)} className="gap-2" size="sm">
+                <Plus className="h-4 w-4" />
+                Add Team Member
+              </Button>
+            </div>
           </div>
 
           <div className="p-6 space-y-6">
@@ -273,6 +297,12 @@ export default function TeamPage() {
           }}
         />
       )}
+
+      <SkillsManagementModal
+        open={showSkillsModal}
+        onOpenChange={setShowSkillsModal}
+        onSkillsUpdated={handleSkillsUpdated}
+      />
     </div>
   )
 }

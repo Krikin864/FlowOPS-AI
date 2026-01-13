@@ -75,6 +75,19 @@ export default function OpportunityDetailsModal({
     }
 
     loadSkills()
+
+    // Listen for skills updates
+    const handleSkillsUpdated = () => {
+      if (opportunity && isEditing) {
+        loadSkills()
+      }
+    }
+
+    window.addEventListener('skillsUpdated', handleSkillsUpdated)
+
+    return () => {
+      window.removeEventListener('skillsUpdated', handleSkillsUpdated)
+    }
   }, [opportunity, isEditing])
 
   const urgencyColors = {
